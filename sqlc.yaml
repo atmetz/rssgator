@@ -6,3 +6,13 @@ sql:
     gen:
       go:
         out: "internal/database"
+        overrides:
+          - db_type: "uuid"
+            nullable: true
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "users.created_at"
+            go_type: "time.Time"
+          - column: "users.updated_at"
+            go_type: "time.Time"

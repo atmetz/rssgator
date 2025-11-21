@@ -11,8 +11,6 @@ import (
 
 // Login function
 func handlerLogins(s *state, cmd command) error {
-	//set context for queries
-	con := context.Background()
 
 	// Verify the correct number of arguments
 	if len(cmd.Args) != 1 {
@@ -20,7 +18,7 @@ func handlerLogins(s *state, cmd command) error {
 	}
 
 	// Check if user exists
-	_, err := s.db.GetUser(con, cmd.Args[0])
+	_, err := s.db.GetUser(context.Background(), cmd.Args[0])
 
 	if err != nil {
 		return fmt.Errorf("user does not exist: %v", err)
@@ -40,8 +38,6 @@ func handlerLogins(s *state, cmd command) error {
 
 // Register user function
 func handlerRegister(s *state, cmd command) error {
-	//set context for queries
-	con := context.Background()
 
 	// Verify the correct number of arguments
 	if len(cmd.Args) != 1 {
@@ -49,14 +45,14 @@ func handlerRegister(s *state, cmd command) error {
 	}
 
 	// Check if user exists
-	_, err := s.db.GetUser(con, cmd.Args[0])
+	_, err := s.db.GetUser(context.Background(), cmd.Args[0])
 
 	if err == nil {
 		return fmt.Errorf("user already exists: %v", err)
 	}
 
 	// Create New User
-	createdUser, err := s.db.CreateUser(con, database.CreateUserParams{
+	createdUser, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -82,4 +78,17 @@ func handlerRegister(s *state, cmd command) error {
 func printUser(user database.User) {
 	fmt.Printf(" * ID:      %v\n", user.ID)
 	fmt.Printf(" * Name:    %v\n", user.Name)
+}
+
+func handlerReset(s *state, cmd command) error {
+
+	err := s.db.Reset(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("could not delete users: %v", err)
+	}
+
+	fmt.Println("database reset successfully!")
+	return nil
+
 }
