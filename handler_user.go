@@ -82,6 +82,8 @@ func printUser(user database.User) {
 
 func handlerReset(s *state, cmd command) error {
 
+	//Reset users table
+
 	err := s.db.Reset(context.Background())
 
 	if err != nil {
@@ -91,4 +93,25 @@ func handlerReset(s *state, cmd command) error {
 	fmt.Println("database reset successfully!")
 	return nil
 
+}
+
+func handlerUsers(s *state, cmd command) error {
+
+	// print list of users and tag current user
+
+	users, err := s.db.GetUsers(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("could not get list of users: %v", err)
+	}
+
+	for _, user := range users {
+		fmt.Printf(" * %s", user.Name)
+		if user.Name == s.cfg.CurrentUserName {
+			fmt.Printf((" (current)"))
+		}
+		fmt.Println()
+	}
+
+	return nil
 }
