@@ -9,16 +9,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 
 	// Verify the correct number of arguments
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <name> <RSS feed url>", cmd.Name)
-	}
-
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
 	}
 
 	name := cmd.Args[0]
@@ -31,17 +26,18 @@ func handlerAddFeed(s *state, cmd command) error {
 		UpdatedAt: time.Now().UTC(),
 		Name:      name,
 		Url:       url,
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("couldn't create feed: %v", err)
 	}
 
+	// Automatically follow newly created feeds by current user
 	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    feed.ID,
 	})
 	if err != nil {
@@ -49,7 +45,7 @@ func handlerAddFeed(s *state, cmd command) error {
 	}
 
 	fmt.Println("Feed created successfully:")
-	printFeed(feed, currentUser)
+	printFeed(feed, user)
 	fmt.Println()
 	fmt.Println("Feed followed successfully:")
 	printFollowing(feedFollow.UserName, feedFollow.FeedName)
@@ -80,6 +76,8 @@ func handlerFeeds(s *state, cmd command) error {
 		return nil
 	}
 
+	// Print all feeds
+
 	fmt.Printf("Found %d feeds:\n", len(feeds))
 	for _, feed := range feeds {
 		user, err := s.db.GetUserById(context.Background(), feed.UserID)
@@ -93,12 +91,7 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
-
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
-	}
+func handlerFollow(s *state, cmd command, user database.User) error {
 
 	// Verify the correct number of arguments
 	if len(cmd.Args) != 1 {
@@ -110,11 +103,13 @@ func handlerFollow(s *state, cmd command) error {
 		return fmt.Errorf("feed does not exist: %v", err)
 	}
 
+	// Create followed feed
+
 	row, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    feed.ID,
 	})
 
@@ -130,14 +125,9 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
+func handlerFollowing(s *state, cmd command, user database.User) error {
 
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
-	}
-
-	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), currentUser.ID)
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return fmt.Errorf("error displaying following: %v", err)
 	}
@@ -146,6 +136,8 @@ func handlerFollowing(s *state, cmd command) error {
 		fmt.Println("No feed follows found for this user.")
 		return nil
 	}
+
+	// Print a list of feeds followed by current user
 
 	fmt.Printf("%s is following:\n", s.cfg.CurrentUserName)
 	for _, feed := range feeds {
@@ -162,4 +154,31 @@ func printFollowing(username, feedname string) {
 	fmt.Printf("* User:          %s\n", username)
 	fmt.Printf("* Feed:          %s\n", feedname)
 
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+
+	// Verify the correct number of arguments
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %s <RSS feed url>", cmd.Name)
+	}
+
+	// find feed
+	feed, err := s.db.GetFeedByURL(context.Background(), cmd.Args[0])
+	if err != nil {
+		return fmt.Errorf("feed does not exist: %v", err)
+	}
+
+	// unfollow based on userid and feedid
+	err = s.db.UnfollowFeed(context.Background(), database.UnfollowFeedParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+
+	if err != nil {
+		return fmt.Errorf("could not unfollow: %v", err)
+	}
+
+	fmt.Println("Successfully unfollowed feed.")
+	return nil
 }
