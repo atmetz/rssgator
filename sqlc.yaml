@@ -20,3 +20,7 @@ sql:
             go_type: "time.Time"
           - column: "feeds.updated_at"
             go_type: "time.Time"
+          - column: "feed_follows.created_at"
+            go_type: "time.Time"
+          - column: "feed_follows.updated_at"
+            go_type: "time.Time"
