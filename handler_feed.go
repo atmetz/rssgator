@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// addfeed command
 func handlerAddFeed(s *state, cmd command, user database.User) error {
 
 	// Verify the correct number of arguments
@@ -64,6 +65,7 @@ func printFeed(feed database.Feed, user database.User) {
 	fmt.Printf("* User:          %s\n", user.Name)
 }
 
+// feeds command
 func handlerFeeds(s *state, cmd command) error {
 
 	feeds, err := s.db.GetFeeds(context.Background())
@@ -91,6 +93,7 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
+// follow command
 func handlerFollow(s *state, cmd command, user database.User) error {
 
 	// Verify the correct number of arguments
@@ -125,6 +128,7 @@ func handlerFollow(s *state, cmd command, user database.User) error {
 	return nil
 }
 
+// following command
 func handlerFollowing(s *state, cmd command, user database.User) error {
 
 	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
@@ -156,6 +160,7 @@ func printFollowing(username, feedname string) {
 
 }
 
+// unfollow command
 func handlerUnfollow(s *state, cmd command, user database.User) error {
 
 	// Verify the correct number of arguments

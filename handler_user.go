@@ -80,6 +80,7 @@ func printUser(user database.User) {
 	fmt.Printf(" * Name:    %v\n", user.Name)
 }
 
+// reset all tables in db
 func handlerReset(s *state, cmd command) error {
 
 	//Reset users table
@@ -95,6 +96,7 @@ func handlerReset(s *state, cmd command) error {
 
 }
 
+// users command
 func handlerUsers(s *state, cmd command) error {
 
 	// print list of users and tag current user

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// agg command
 func handlerAgg(s *state, cmd command) error {
 
 	// Verify the correct number of arguments
@@ -19,6 +20,7 @@ func handlerAgg(s *state, cmd command) error {
 		return fmt.Errorf("usage: %s <name> <time duration, etc 1m>", cmd.Name)
 	}
 
+	// set time interval between feed scrape
 	time_between_requests := cmd.Args[0]
 
 	timeBetweenRequests, err := time.ParseDuration(time_between_requests)
@@ -29,6 +31,7 @@ func handlerAgg(s *state, cmd command) error {
 
 	fmt.Printf("Collecting feeds every %v...\n", timeBetweenRequests)
 
+	//
 	ticker := time.NewTicker(timeBetweenRequests)
 	for ; ; <-ticker.C {
 		scrapeFeeds(s)
@@ -36,6 +39,7 @@ func handlerAgg(s *state, cmd command) error {
 
 }
 
+// get new posts feeds
 func scrapeFeeds(s *state) {
 
 	nextFeed, err := s.db.GetNextFeedToFetch(context.Background())
@@ -48,17 +52,21 @@ func scrapeFeeds(s *state) {
 
 }
 
+// get new posts feeds
 func scrapeFeed(db *database.Queries, feed database.Feed) {
+	// mark feed as fetched
 	_, err := db.MarkFeedFetched(context.Background(), feed.ID)
 	if err != nil {
 		log.Printf("couldn't mark feed %s fecthed: %v", feed.Name, err)
 	}
 
+	// fetch feed
 	rssFeed, err := fetchFeed(context.Background(), feed.Url)
 	if err != nil {
 		log.Printf("can not get feed %s: %v", feed.Url, err)
 	}
 
+	// set different time format layouts
 	layouts := []string{
 		time.RFC1123Z,
 		time.RFC1123,
@@ -67,6 +75,7 @@ func scrapeFeed(db *database.Queries, feed database.Feed) {
 		time.RFC3339,
 	}
 
+	// set publishedAt with time format based on above list
 	for _, item := range rssFeed.Channel.Item {
 
 		publishedAt := sql.NullTime{}
@@ -106,12 +115,14 @@ func scrapeFeed(db *database.Queries, feed database.Feed) {
 
 }
 
+// browse command
 func handlerBrowse(s *state, cmd command, user database.User) error {
 
 	if len(cmd.Args) > 2 {
 		return fmt.Errorf("usage: %s <limit, default 2>", cmd.Name)
 	}
 
+	// get post limit
 	var limit int32
 	limit = 2
 
@@ -122,6 +133,7 @@ func handlerBrowse(s *state, cmd command, user database.User) error {
 		}
 	}
 
+	// get number of posts based on limit
 	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
 		UserID: user.ID,
 		Limit:  limit,
@@ -131,6 +143,7 @@ func handlerBrowse(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("cannot browse posts: %v", err)
 	}
 
+	// print posts
 	fmt.Printf("%s's most recent followed posts:\n", user.Name)
 	for _, post := range posts {
 		fmt.Printf("%s from %s\n", post.PublishedAt.Time.Format("Mon Jan 2"), post.FeedName)

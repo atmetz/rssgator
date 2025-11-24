@@ -13,6 +13,7 @@ type commands struct {
 	command map[string]func(*state, command) error
 }
 
+// run command, if it exists
 func (c *commands) run(s *state, cmd command) error {
 	f, exists := c.command[cmd.Name]
 	if !exists {
